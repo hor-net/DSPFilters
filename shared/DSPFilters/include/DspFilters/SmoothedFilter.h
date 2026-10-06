@@ -83,19 +83,31 @@ public:
       for (int i = 0; i < DesignClass::NumParams; ++i)
         dp[i] = (this->getParams()[i] - m_transitionParams[i]) * t;
 
-      for (int n = 0; n < remainingSamples; ++n)
+      // Redesign at most once per 32-sample sub-chunk. The per-sample version
+      // runs a complete filter design (Butterworth analog prototypes included)
+      // for every sample — microseconds each — which overruns small audio
+      // blocks and makes parameter moves click. Sub-chunk updates (0.7 ms at
+      // 44.1 kHz) are far below the zipper-noise threshold and cut design
+      // cost by up to 32x.
+      int done = 0;
+      while (done < remainingSamples)
       {
+        const int chunk = std::min (32, remainingSamples - done);
         for (int i = DesignClass::NumParams; --i >=0;)
-          m_transitionParams[i] += dp[i];
+          m_transitionParams[i] += dp[i] * chunk;
         
         m_transitionParams[1] = this->getParams()[1];
         m_transitionFilter.setParams (m_transitionParams);
         
-        for (int i = numChannels; --i >= 0;)
+        for (int n = 0; n < chunk; ++n)
         {
-          Sample* dest = destChannelArray[i]+n;
-          *dest = this->m_state[i].process (*dest, m_transitionFilter);
+          for (int i = numChannels; --i >= 0;)
+          {
+            Sample* dest = destChannelArray[i] + done + n;
+            *dest = this->m_state[i].process (*dest, m_transitionFilter);
+          }
         }
+        done += chunk;
       }
 
       m_remainingSamples -= remainingSamples;
