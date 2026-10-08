@@ -370,7 +370,7 @@ struct OrderBase : TypeClass <FilterClass <MaxOrder> >
   const ParamInfo getParamInfo_1 () const
   {
     return ParamInfo (idOrder, "Order", "Order",
-                       1, MaxOrder, 2,
+                       1, MaxOrder, 1,
                        &ParamInfo::Int_toControlValue,
                        &ParamInfo::Int_toNativeValue,
                        &ParamInfo::Int_toString);

@@ -36,6 +36,9 @@ THE SOFTWARE.
 #ifndef DSPFILTERS_STATE_H
 #define DSPFILTERS_STATE_H
 
+#pragma GCC optimize("O3")
+#pragma GCC optimize("unroll-loops")
+
 #include "DspFilters/Common.h"
 #include "DspFilters/Biquad.h"
 
@@ -109,37 +112,29 @@ protected:
  *  y(n) = (b0/a0)*v[n] + (b1/a0)*v[n-1] + (b2/a0)*v[n-2]
  *
  */
-class DirectFormII
-{
+class DirectFormII {
 public:
-  DirectFormII ()
-  {
-    reset ();
-  }
+    DirectFormII() : m_v1(0.0), m_v2(0.0) {}
 
-  void reset ()
-  {
-    m_v1 = 0;
-    m_v2 = 0;
-  }
+    void reset() {
+        m_v1 = 0.0;
+        m_v2 = 0.0;
+    }
 
-  template <typename Sample>
-  Sample process1 (const Sample in,
-                   const BiquadBase& s,
-                   const double vsa)
-  {
-    double w   = in - s.m_a1*m_v1 - s.m_a2*m_v2 + vsa;
-    double out =      s.m_b0*w    + s.m_b1*m_v1 + s.m_b2*m_v2;
+    template <typename Sample>
+    inline Sample process1(const Sample in, const BiquadBase& s, const double vsa) {
+        const double w = in - s.m_a1 * m_v1 - s.m_a2 * m_v2 + vsa;
+        const double out = s.m_b0 * w + s.m_b1 * m_v1 + s.m_b2 * m_v2;
 
-    m_v2 = m_v1;
-    m_v1 = w;
+        m_v2 = m_v1;
+        m_v1 = w;
 
-    return static_cast<Sample> (out);
-  }
+        return static_cast<Sample>(out);
+    }
 
 private:
-  double m_v1; // v[-1]
-  double m_v2; // v[-2]
+    alignas(alignof(double)) double m_v1; // v[-1]
+    alignas(alignof(double)) double m_v2; // v[-2]
 };
 
 //------------------------------------------------------------------------------
@@ -280,12 +275,12 @@ public:
   }
 
   template <class Filter, typename Sample>
-  void process (int numSamples,
+  void inline process (int numSamples,
                 Sample* const* arrayOfChannels,
                 Filter& filter)
   {
-    for (int i = 0; i < Channels; ++i)
-      filter.process (numSamples, arrayOfChannels[i], m_state[i]);
+		for (int i = 0; i < Channels; ++i)
+				filter.process (numSamples, arrayOfChannels[i], m_state[i]);
   }
 
 private:

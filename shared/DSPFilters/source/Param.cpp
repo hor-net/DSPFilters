@@ -201,7 +201,7 @@ ParamInfo ParamInfo::defaultBandwidthParam ()
 ParamInfo ParamInfo::defaultBandwidthHzParam ()
 {
   return ParamInfo (idBandwidthHz, "BW", "Bandwidth (Hz)",
-                     10, 22040, 1720,
+                     10, 22040, 500,
                      &ParamInfo::Log_toControlValue,
                      &ParamInfo::Log_toNativeValue,
                      &ParamInfo::Hz_toString);

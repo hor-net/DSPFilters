@@ -81,7 +81,8 @@ void BandPass1::setup (double sampleRate,
   double w0 = 2 * doublePi * centerFrequency / sampleRate;
   double cs = cos (w0);
   double sn = sin (w0);
-  double AL = sn / ( 2 * bandWidth );
+  //double AL = sn / ( 2 * bandWidth );
+  double AL = sn*sinh( log(2.)/2. * bandWidth * w0/sin(w0) );
   double b0 = bandWidth * AL;// sn / 2;
   double b1 =  0;
   double b2 = -bandWidth * AL;//-sn / 2;
@@ -98,7 +99,8 @@ void BandPass2::setup (double sampleRate,
   double w0 = 2 * doublePi * centerFrequency / sampleRate;
   double cs = cos (w0);
   double sn = sin (w0);
-  double AL = sn / ( 2 * bandWidth );
+  //double AL = sn / ( 2 * bandWidth );
+  double AL = sn*sinh( log(2.)/2. * bandWidth * w0/sin(w0) );
   double b0 =  AL;
   double b1 =  0;
   double b2 = -AL;
@@ -115,7 +117,8 @@ void BandStop::setup (double sampleRate,
   double w0 = 2 * doublePi * centerFrequency / sampleRate;
   double cs = cos (w0);
   double sn = sin (w0);
-  double AL = sn / ( 2 * bandWidth );
+  //double AL = sn / ( 2 * bandWidth );
+  double AL = sn*sinh( log(2.)/2. * bandWidth * w0/sin(w0) );
   double b0 =  1;
   double b1 = -2 * cs;
   double b2 =  1;
@@ -132,10 +135,12 @@ void LowShelf::setup (double sampleRate,
 {
   double A  = pow (10, gainDb/40);
   double w0 = 2 * doublePi * cutoffFrequency / sampleRate;
-  double cs = cos (w0);
-  double sn = sin (w0);
-  double AL = sn / 2 * ::std::sqrt ((A + 1/A) * (1/shelfSlope - 1) + 2);
-  double sq = 2 * sqrt(A) * AL;
+  //double cs = cos (w0);
+  //double sn = sin (w0);
+  double cs,sn;
+  fastersincos(w0, &sn, &cs);
+  double AL = sn / 2 * fastsqrt1 (fabs((A + 1/A) * (1/shelfSlope - 1) + 2));
+  double sq = 2 * fastsqrt1(A) * AL;
   double b0 =    A*( (A+1) - (A-1)*cs + sq );
   double b1 =  2*A*( (A-1) - (A+1)*cs );
   double b2 =    A*( (A+1) - (A-1)*cs - sq );
@@ -152,10 +157,13 @@ void HighShelf::setup (double sampleRate,
 {
   double A  = pow (10, gainDb/40);
   double w0 = 2 * doublePi * cutoffFrequency / sampleRate;
-  double cs = cos (w0);
-  double sn = sin (w0);
-  double AL = sn / 2 * ::std::sqrt ((A + 1/A) * (1/shelfSlope - 1) + 2);
-  double sq = 2 * sqrt(A) * AL;
+  //double cs = cos (w0);
+  //double sn = sin (w0);
+  double cs,sn;
+  fastersincos(w0, &sn, &cs);
+  //double AL = sn / 2 * ::std::sqrt (fabs((A + 1/A) * (1/shelfSlope - 1) + 2));
+  double AL = sn / 2 * fastsqrt1 (fabs((A + 1/A) * (1/shelfSlope - 1) + 2));
+  double sq = 2 * fastsqrt1(A) * AL;
   double b0 =    A*( (A+1) + (A-1)*cs + sq );
   double b1 = -2*A*( (A-1) + (A+1)*cs );
   double b2 =    A*( (A+1) + (A-1)*cs - sq );
@@ -164,24 +172,75 @@ void HighShelf::setup (double sampleRate,
   double a2 =        (A+1) - (A-1)*cs - sq;
   setCoefficients (a0, a1, a2, b0, b1, b2);
 }
+	
+void HighShelfOld::setup (double sampleRate,
+						   double cutoffFrequency,
+						   double gainDb,
+						   double shelfSlope)
+{
+  double A  = pow (10, gainDb/40);
+  double w0 = 2 * doublePi * cutoffFrequency / sampleRate;
+  double cs = cos (w0);
+  double sn = sin (w0);
+  double AL = sn / 2 * ::std::sqrt ((A + 1/A) * (1/shelfSlope - 1) + 2);
+  double sq = 2 * sqrt(A) * AL;
+
+	double b0 =			 A * ( (A+1) + (A-1)*cs + sq );
+	double b1 =	-2 * A * ( (A-1) + (A+1)*cs );
+	double b2 =		   A * ( (A+1) + (A-1)*cs - sq );
+	double a0 =			 1 / ( (A+1) - (A-1)*cs + sq );
+	double a1 =			-2 * ( (A-1) - (A+1)*cs);
+	double a2 =					   (A-1)*cs + sq - (A+1);
+  //double b0 =    A*( (A+1) + (A-1)*cs + sq );
+  //double b1 = -2*A*( (A-1) + (A+1)*cs );
+  //double b2 =    A*( (A+1) + (A-1)*cs - sq );
+  //double a0 =        (A+1) - (A-1)*cs + sq;
+  //double a1 =    2*( (A-1) - (A+1)*cs );
+  //double a2 =        (A+1) - (A-1)*cs - sq;
+  setCoefficients (a0, a1*a0*a0, a2*a0*a0, b0*a0*a0, b1*a0*a0, b2*a0*a0);
+}
 
 void BandShelf::setup (double sampleRate,
                        double centerFrequency,
                        double gainDb,
                        double bandWidth)
 {
-  double A  = pow (10, gainDb/40);
-  double w0 = 2 * doublePi * centerFrequency / sampleRate;
-  double cs = cos(w0);
-  double sn = sin(w0);
-  double AL = sn * sinh( doubleLn2/2 * bandWidth * w0/sn );
-  assert (!Dsp::is_nan (AL));
-  double b0 =  1 + AL * A;
-  double b1 = -2 * cs;
-  double b2 =  1 - AL * A;
-  double a0 =  1 + AL / A;
-  double a1 = -2 * cs;
-  double a2 =  1 - AL / A;
+//	double A  = pow (10, gainDb/40);
+//  double w0 = 2 * doublePi * centerFrequency / sampleRate;
+//  //double cs = cos(w0);
+//  //double sn = sin(w0);
+//  double cs,sn;
+//  fastersincos(w0, &sn, &cs);
+//  double AL = sn * sinh( doubleLn2/2 * bandWidth * w0/sn );
+//  //assert (!Dsp::is_nan (AL));
+//  double b0 =  1 + AL * A;
+//  double b1 = -2 * cs;
+//  double b2 =  1 - AL * A;
+//  double a0 =  1 + AL / A;
+//  double a1 = -2 * cs;
+//  double a2 =  1 - AL / A;
+  
+  double A = pow(10.0, gainDb * 0.025); // 0.025 = 1/40
+  double w0 = 2.0 * doublePi * centerFrequency / sampleRate;
+  double cs, sn;
+
+  // Efficiently compute sin and cos together
+  fastsincos(w0, &sn, &cs); // Use sincos function if available
+
+  double w0_div_sn = (sn != 0) ? w0 / sn : 0; // Handle division by zero
+
+  double AL = (sn != 0) ? sn * sinh(doubleLn2 / 2 * bandWidth * w0_div_sn) : 0;
+  double AL_A = AL * A;
+  double AL_div_A = AL / A;
+  
+  // Calculate coefficients
+  double b0 = 1.0 + AL_A;
+  double b2 = 1.0 - AL_A;
+  double a0 = 1.0 + AL_div_A;
+  double a2 = 1.0 - AL_div_A;
+  double b1 = -2.0 * cs;
+  double a1 = -2.0 * cs;
+  
   setCoefficients (a0, a1, a2, b0, b1, b2);
 }
 

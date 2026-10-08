@@ -94,7 +94,7 @@ void add (int channels,
 // type conversion if Ts and Td are different (for example, float to double).
 template <typename Td,
           typename Ts>
-void copy (int samples,
+void inline copy (int samples,
            Td* dest,
            Ts const* src,
            int destSkip = 0,
@@ -141,7 +141,7 @@ void copy (int samples,
 
 // Wrapper that uses memcpy if there is no skip and the types are the same
 template <typename Ty>
-void copy (int samples,
+void inline copy (int samples,
            Ty* dest,
            Ty const* src,
            int destSkip = 0,
@@ -369,7 +369,7 @@ void interleave (int samples,
 // Multiply samples by a constant, without clip or overflow checking.
 template <typename Td,
           typename Ty>
-void multiply (int samples,
+void inline multiply (int samples,
                Td* dest,
                Ty factor,
                int destSkip = 0)
@@ -397,7 +397,7 @@ template <typename Td,
           typename Ty>
 void multiply (int channels,
                int samples,
-               Td* const* dest,
+               Td* dest,
                Ty factor,
                int destSkip = 0)
 {

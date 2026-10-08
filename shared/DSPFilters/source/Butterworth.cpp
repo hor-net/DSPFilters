@@ -94,7 +94,19 @@ void AnalogLowShelf::design (int numPoles, double gainDb)
     for (int i = 1; i <= pairs; ++i)
     {
       const double theta = doublePi * (0.5 - (2 * i - 1) / n2);
-      addPoleZeroConjugatePairs (std::polar (gp, theta), std::polar (gz, theta));
+			std::complex<double> pole1;
+			if (gp < 0) {
+				pole1 = {gp*cos(theta), gp*sin(theta)};
+			} else {
+				pole1 = std::polar (gp, theta);
+			}
+			std::complex<double> pole2;
+			if (gz < 0) {
+				pole2 = {gz*cos(theta), gz*sin(theta)};
+			} else {
+				pole2 = std::polar (gz, theta);
+			}
+      addPoleZeroConjugatePairs (pole1, pole2);
     }
     
     if (numPoles & 1)
@@ -195,9 +207,12 @@ void BandShelfBase::setup (int order,
                            double gainDb)
 {
   m_analogProto.design (order, gainDb);
-
-  BandPassTransform (centerFrequency / sampleRate,
-                     widthFrequency / sampleRate,
+  double f_mid = centerFrequency / sampleRate;          // (f1+f2)/2 lineare
+  double fw    = widthFrequency / sampleRate;
+  double fc = f_mid / std::sqrt(1.0 - (fw/(2.0*f_mid))*(fw/(2.0*f_mid)));
+  
+  BandPassTransform (fc,
+                     fw,
                      m_digitalProto,
                      m_analogProto);
 

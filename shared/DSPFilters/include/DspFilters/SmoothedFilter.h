@@ -87,7 +87,8 @@ public:
       {
         for (int i = DesignClass::NumParams; --i >=0;)
           m_transitionParams[i] += dp[i];
-
+        
+        m_transitionParams[1] = this->getParams()[1];
         m_transitionFilter.setParams (m_transitionParams);
         
         for (int i = numChannels; --i >= 0;)
@@ -123,6 +124,8 @@ public:
   {
     processBlock (numSamples, arrayOfChannels);
   }
+  
+  int m_transitionSamples;
 
 protected:
   void doSetParams (const Params& parameters)
@@ -140,11 +143,11 @@ protected:
 
     filter_type_t::doSetParams (parameters);
   }
-
+  
 protected:
   Params m_transitionParams;
   DesignClass m_transitionFilter;
-  int m_transitionSamples;
+  
 
   int m_remainingSamples;        // remaining transition samples
 };

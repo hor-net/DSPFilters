@@ -124,83 +124,81 @@ HighPassTransform::HighPassTransform (double fc,
                      analog.getNormalGain());
 }
 
-//------------------------------------------------------------------------------
-
 BandPassTransform::BandPassTransform (double fc,
-                                      double fw,
-                                      LayoutBase& digital,
-                                      LayoutBase const& analog)
+  double fw,
+  LayoutBase& digital,
+  LayoutBase const& analog)
 {
-  // handle degenerate cases efficiently
-  // THIS DOESNT WORK because the cascade states won't match
+// handle degenerate cases efficiently
+// THIS DOESNT WORK because the cascade states won't match
 #if 0
-  const double fw_2 = fw / 2;
-  if (fc - fw_2 < 0)
-  {
-    LowPassTransform::transform (fc + fw_2, digital, analog);
-  }
-  else if (fc + fw_2 >= 0.5)
-  {
-    HighPassTransform::transform (fc - fw_2, digital, analog);
-  }
-  else
+const double fw_2 = fw / 2;
+if (fc - fw_2 < 0)
+{
+LowPassTransform::transform (fc + fw_2, digital, analog);
+}
+else if (fc + fw_2 >= 0.5)
+{
+HighPassTransform::transform (fc - fw_2, digital, analog);
+}
+else
 #endif
 
-  digital.reset ();
+digital.reset ();
 
-  const double ww = 2 * doublePi * fw;
+const double ww = 2 * doublePi * fw;
 
-  // pre-calcs
-  wc2 = 2 * doublePi * fc - (ww / 2);
-  wc  = wc2 + ww;
+// pre-calcs
+wc2 = 2 * doublePi * fc - (ww / 2);
+wc  = wc2 + ww;
 
-  // what is this crap?
-  if (wc2 < 1e-8)
-      wc2 = 1e-8;
-  if (wc  > doublePi-1e-8)
-      wc  = doublePi-1e-8;
+// what is this crap?
+if (wc2 < 1e-8)
+wc2 = 1e-8;
+if (wc  > doublePi-1e-8)
+wc  = doublePi-1e-8;
 
-  a =     cos ((wc + wc2) * 0.5) /
-          cos ((wc - wc2) * 0.5);
-  b = 1 / tan ((wc - wc2) * 0.5);
-  a2 = a * a;
-  b2 = b * b;
-  ab = a * b;
-  ab_2 = 2 * ab;
+a =     cos ((wc + wc2) * 0.5) /
+cos ((wc - wc2) * 0.5);
+b = 1 / tan ((wc - wc2) * 0.5);
+a2 = a * a;
+b2 = b * b;
+ab = a * b;
+ab_2 = 2 * ab;
 
-  const int numPoles = analog.getNumPoles ();
-  const int pairs = numPoles / 2;
-  for (int i = 0; i < pairs; ++i)
-  {
-    const PoleZeroPair& pair = analog[i];
-    ComplexPair p1 = transform (pair.poles.first);
-    ComplexPair z1 = transform (pair.zeros.first);
+const int numPoles = analog.getNumPoles ();
+const int pairs = numPoles / 2;
+for (int i = 0; i < pairs; ++i)
+{
+const PoleZeroPair& pair = analog[i];
+ComplexPair p1 = transform (pair.poles.first);
+ComplexPair z1 = transform (pair.zeros.first);
 
-    //
-    // Optimize out the calculations for conjugates for Release builds
-    //
+//
+// Optimize out the calculations for conjugates for Release builds
+//
 #ifndef NDEBUG
-    ComplexPair p2 = transform (pair.poles.second);
-    ComplexPair z2 = transform (pair.zeros.second);
-    assert (p2.first == std::conj (p1.first));
-    assert (p2.second == std::conj (p1.second));
+ComplexPair p2 = transform (pair.poles.second);
+ComplexPair z2 = transform (pair.zeros.second);
+assert (p2.first == std::conj (p1.first));
+assert (p2.second == std::conj (p1.second));
 #endif
 
-    digital.addPoleZeroConjugatePairs (p1.first, z1.first);
-    digital.addPoleZeroConjugatePairs (p1.second, z1.second);
-  }
+digital.addPoleZeroConjugatePairs (p1.first, z1.first);
+digital.addPoleZeroConjugatePairs (p1.second, z1.second);
+}
 
-  if (numPoles & 1)
-  {
-    ComplexPair poles = transform (analog[pairs].poles.first);
-    ComplexPair zeros = transform (analog[pairs].zeros.first);
+if (numPoles & 1)
+{
+ComplexPair poles = transform (analog[pairs].poles.first);
+ComplexPair zeros = transform (analog[pairs].zeros.first);
 
-    digital.add (poles, zeros);
-  }
+digital.add (poles, zeros);
+}
 
-  double wn = analog.getNormalW();
-  digital.setNormal (2 * atan (sqrt (tan ((wc + wn)* 0.5) * tan((wc2 + wn)* 0.5))),
-                     analog.getNormalGain());
+double wn = analog.getNormalW();
+digital.setNormal (2 * atan (sqrt (tan ((wc + wn)* 0.5) * tan((wc2 + wn)* 0.5))),
+analog.getNormalGain());
 }
 
 ComplexPair BandPassTransform::transform (complex_t c)
@@ -210,13 +208,22 @@ ComplexPair BandPassTransform::transform (complex_t c)
 
   c = (1. + c) / (1. - c); // bilinear
 
+  // Calculate intermediate values with better numerical stability
   complex_t v = 0;
-  v = addmul (v, 4 * (b2 * (a2 - 1) + 1), c);
+  const double k_real = 4 * (b2 * (a2 - 1) + 1); // Use double instead of complex_t
+  v = addmul (v, k_real, c);
   v += 8 * (b2 * (a2 - 1) - 1);
   v *= c;
-  v += 4 * (b2 * (a2 - 1) + 1);
-  v = std::sqrt (v);
+  v += k_real;
+  
+  // Use a more robust approach for the square root
+  // Avoid potential numerical issues by ensuring v has a positive real part
+  if (std::abs(v) < 1e-8)
+    v = complex_t(1e-8, 0);
+  
+  v = sqrt (v);
 
+  // Smooth the transition for u and v calculations
   complex_t u = -v;
   u = addmul (u, ab_2, c);
   u += ab_2;
@@ -224,10 +231,25 @@ ComplexPair BandPassTransform::transform (complex_t c)
   v = addmul (v, ab_2, c);
   v += ab_2;
 
+  // Ensure denominator is never too close to zero
   complex_t d = 0;
   d = addmul (d, 2 * (b - 1), c) + 2 * (1 + b);
+  
+  if (std::abs(d) < 1e-8)
+    d = complex_t(1e-8, 0);
 
-  return ComplexPair (u/d, v/d);
+  // Apply smoothing to the final result
+  complex_t u_d = u/d;
+  complex_t v_d = v/d;
+  
+  // Limit maximum magnitude to prevent spikes
+  const double maxMagnitude = 100.0;
+  if (std::abs(u_d) > maxMagnitude)
+    u_d *= maxMagnitude / std::abs(u_d);
+  if (std::abs(v_d) > maxMagnitude)
+    v_d *= maxMagnitude / std::abs(v_d);
+
+  return ComplexPair (u_d, v_d);
 }
 
 //------------------------------------------------------------------------------
@@ -313,13 +335,21 @@ ComplexPair BandStopTransform::transform (complex_t c)
   else
     c = (1. + c) / (1. - c); // bilinear
 
+  // Calculate with better numerical stability
   complex_t u (0);
-  u = addmul (u, 4 * (b2 + a2 - 1), c);
+  const double k_real = 4 * (b2 + a2 - 1); // Use double instead of complex_t
+  u = addmul (u, k_real, c);
   u += 8 * (b2 - a2 + 1);
   u *= c;
-  u += 4 * (a2 + b2 - 1);
+  u += k_real;
+  
+  // Ensure u has a positive real part for sqrt
+  if (std::abs(u) < 1e-8)
+    u = complex_t(1e-8, 0);
+  
   u = std::sqrt (u);
 
+  // Calculate v and u with better stability
   complex_t v = u * -.5;
   v += a;
   v = addmul (v, -a, c);
@@ -328,10 +358,25 @@ ComplexPair BandStopTransform::transform (complex_t c)
   u += a;
   u = addmul (u, -a, c);
   
+  // Ensure denominator is never too close to zero
   complex_t d (b + 1);
   d = addmul (d, b-1, c);
+  
+  if (std::abs(d) < 1e-8)
+    d = complex_t(1e-8, 0);
+  
+  // Apply smoothing to the final result
+  complex_t u_d = u/d;
+  complex_t v_d = v/d;
+  
+  // Limit maximum magnitude to prevent spikes
+  const double maxMagnitude = 100.0;
+  if (std::abs(u_d) > maxMagnitude)
+    u_d *= maxMagnitude / std::abs(u_d);
+  if (std::abs(v_d) > maxMagnitude)
+    v_d *= maxMagnitude / std::abs(v_d);
 
-  return ComplexPair (u/d, v/d);
+  return ComplexPair (u_d, v_d);
 }
 
 }

@@ -81,6 +81,33 @@ BiquadPoleState::BiquadPoleState (const BiquadBase& s)
 
 //------------------------------------------------------------------------------
 
+//complex_t BiquadBase::response (double normalizedFrequency) const
+//{
+//  const double a0 = getA0 ();
+//  const double a1 = getA1 ();
+//  const double a2 = getA2 ();
+//  const double b0 = getB0 ();
+//  const double b1 = getB1 ();
+//  const double b2 = getB2 ();
+//
+//  const double w = 2 * doublePi * normalizedFrequency;
+//  const complex_t czn1 = std::polar (1., -w);
+//  const complex_t czn2 = std::polar (1., -2 * w);
+//  complex_t ch (1);
+//  complex_t cbot (1);
+//
+//  complex_t ct (b0/a0);
+//  complex_t cb (1);
+//  ct = addmul (ct, b1/a0, czn1);
+//  ct = addmul (ct, b2/a0, czn2);
+//  cb = addmul (cb, a1/a0, czn1);
+//  cb = addmul (cb, a2/a0, czn2);
+//  ch   *= ct;
+//  cbot *= cb;
+//
+//  return ch / cbot;
+//}
+
 complex_t BiquadBase::response (double normalizedFrequency) const
 {
   const double a0 = getA0 ();
@@ -91,18 +118,14 @@ complex_t BiquadBase::response (double normalizedFrequency) const
   const double b2 = getB2 ();
 
   const double w = 2 * doublePi * normalizedFrequency;
-  const complex_t czn1 = std::polar (1., -w);
-  const complex_t czn2 = std::polar (1., -2 * w);
+  const complex_t czn1 = std::exp(-complex_t(0, w));
+  const complex_t czn2 = std::pow(czn1, 2.0);
   complex_t ch (1);
   complex_t cbot (1);
 
-  complex_t ct (b0/a0);
-  complex_t cb (1);
-  ct = addmul (ct, b1/a0, czn1);
-  ct = addmul (ct, b2/a0, czn2);
-  cb = addmul (cb, a1/a0, czn1);
-  cb = addmul (cb, a2/a0, czn2);
-  ch   *= ct;
+  const complex_t ct = (b0 + b1 * czn1 + b2 * czn2) / a0;
+  const complex_t cb = (a0 + a1 * czn1 + a2 * czn2) / a0;
+  ch *= ct;
   cbot *= cb;
 
   return ch / cbot;
@@ -119,15 +142,22 @@ std::vector<PoleZeroPair> BiquadBase::getPoleZeros () const
 void BiquadBase::setCoefficients (double a0, double a1, double a2,
                                   double b0, double b1, double b2)
 {
-  assert (!Dsp::is_nan (a0) && !Dsp::is_nan (a1) && !Dsp::is_nan (a2) &&
-          !Dsp::is_nan (b0) && !Dsp::is_nan (b1) && !Dsp::is_nan (b2));
+  //assert (!Dsp::is_nan (a0) && !Dsp::is_nan (a1) && !Dsp::is_nan (a2) &&
+  //        !Dsp::is_nan (b0) && !Dsp::is_nan (b1) && !Dsp::is_nan (b2));
 
-  m_a0 = a0;
+//  double invA0 = 1./a0;
+//  m_a1 = a1*invA0;
+//  m_a2 = a2*invA0;
+//  m_b0 = b0*invA0;
+//  m_b1 = b1*invA0;
+//  m_b2 = b2*invA0;
+  
   m_a1 = a1/a0;
   m_a2 = a2/a0;
   m_b0 = b0/a0;
   m_b1 = b1/a0;
   m_b2 = b2/a0;
+  m_a0 = a0;
 }
 
 void BiquadBase::setOnePole (complex_t pole, complex_t zero)
@@ -166,7 +196,7 @@ void BiquadBase::setTwoPole (complex_t pole1, complex_t zero1,
 
   if (pole1.imag() != 0)
   {
-    assert (pole2 == std::conj (pole1));
+    //assert (pole2 == std::conj (pole1));
 
     a1 = -2 * pole1.real();
     a2 = std::norm (pole1);
@@ -185,7 +215,7 @@ void BiquadBase::setTwoPole (complex_t pole1, complex_t zero1,
 
   if (zero1.imag() != 0)
   {
-    assert (zero2 == std::conj (zero1));
+    //assert (zero2 == std::conj (zero1));
 
     b1 = -2 * zero1.real();
     b2 = std::norm (zero1);

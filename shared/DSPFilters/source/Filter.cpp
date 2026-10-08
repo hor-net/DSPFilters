@@ -36,6 +36,7 @@ THE SOFTWARE.
 #include "DspFilters/Common.h"
 #include "DspFilters/Filter.h"
 
+
 namespace Dsp {
 
 Params Filter::getDefaultParams() const
@@ -70,6 +71,17 @@ int Filter::findParamId (int paramId)
   return index;
 }
 
+#include <execinfo.h> /* backtrace, backtrace_symbols_fd */
+#include <unistd.h> /* STDOUT_FILENO */
+
+void print_stacktrace(void) {
+    size_t size;
+    enum Constexpr { MAX_SIZE = 1024 };
+    void *array[MAX_SIZE];
+    size = backtrace(array, MAX_SIZE);
+    backtrace_symbols_fd(array, size, STDOUT_FILENO);
+}
+
 void Filter::setParamById (int paramId, double nativeValue)
 {
   for (int i = getNumParams(); --i >= 0;)
@@ -80,7 +92,8 @@ void Filter::setParamById (int paramId, double nativeValue)
       return;
     }
   }
-  
+  //printf("%i", paramId);
+  //print_stacktrace();
   assert (0);
 }
 

@@ -40,6 +40,8 @@ THE SOFTWARE.
 #include "DspFilters/Biquad.h"
 #include "DspFilters/Design.h"
 #include "DspFilters/Filter.h"
+#define _USE_MATH_DEFINES
+#include <math.h>
 
 namespace Dsp {
 
@@ -51,6 +53,99 @@ namespace Dsp {
  */
 
 namespace RBJ {
+
+
+typedef int    Int32;  // Must be 32 bits
+
+// Must be 64 bits
+#ifdef _MSC_VER
+typedef __int64 Int64;
+#else
+typedef int64_t Int64;
+#endif
+
+
+// Lower precision than ::fastsincos() but still decent
+inline void fastersincos( double x, double *sn, double *cs )
+{
+  //always wrap input angle to -PI..PI
+  if    (x < -M_PI) x += 2*M_PI;
+  else if (x >  M_PI) x -= 2*M_PI;
+  //compute sine
+  if (x < 0)  *sn = 1.27323954 * x + 0.405284735 * x * x;
+  else    *sn = 1.27323954 * x - 0.405284735 * x * x;
+  //compute cosine: sin(x + PI/2) = cos(x)
+  x += M_PI_2;
+  if (x > M_PI ) x -= 2*M_PI;
+  if (x < 0)  *cs = 1.27323954 * x + 0.405284735 * x * x;
+  else    *cs = 1.27323954 * x - 0.405284735 * x * x;
+}
+
+// Slower than ::fastersincos() but still faster than
+// sin(), and with the best accuracy of these routines.
+inline void fastsincos( double x, double *sn, double *cs )
+{
+  double s, c;
+  //always wrap input angle to -PI..PI
+     if (x < -M_PI) x += 2*M_PI;
+  else if (x >  M_PI) x -= 2*M_PI;
+  //compute sine
+  if (x < 0)
+  {
+    s = 1.27323954 * x + .405284735 * x * x;
+    if (s < 0)  s = .225 * (s * -s - s) + s;
+    else    s = .225 * (s *  s - s) + s;
+  }
+  else
+  {
+    s = 1.27323954 * x - 0.405284735 * x * x;
+    if (s < 0)  s = .225 * (s * -s - s) + s;
+    else    s = .225 * (s *  s - s) + s;
+  }
+  *sn=s;
+  //compute cosine: sin(x + PI/2) = cos(x)
+  x += M_PI_2;
+  if (x > M_PI ) x -= 2*M_PI;
+  if (x < 0)
+  {
+    c = 1.27323954 * x + 0.405284735 * x * x;
+    if (c < 0)  c = .225 * (c * -c - c) + c;
+    else    c = .225 * (c *  c - c) + c;
+  }
+  else
+  {
+    c = 1.27323954 * x - 0.405284735 * x * x;
+    if (c < 0)  c = .225 * (c * -c - c) + c;
+    else    c = .225 * (c *  c - c) + c;
+  }
+  *cs=c;
+}
+
+inline float fastsqrt1( float x )
+{
+  union { Int32 i; float x; } u;
+  u.x = x;
+  u.i = (Int32(1)<<29) + (u.i >> 1) - (Int32(1)<<22);
+  return u.x;
+}
+
+inline double fastsqrt1( double x )
+{
+  union { Int64 i; double x; } u;
+  u.x = x;
+  u.i = (Int64(1)<<61) + (u.i >> 1) - (Int64(1)<<51);
+  return u.x;
+}
+
+static double fastsinh (double x) noexcept
+{
+  auto x2 = x * x;
+  auto numerator = -x * (11511339840 + x2 * (1640635920 + x2 * (52785432 + x2 * 479249)));
+  auto denominator = -11511339840 + x2 * (277920720 + x2 * (-3177720 + x2 * 18361));
+  return numerator / denominator;
+}
+
+
 
 //
 // Raw filters
@@ -107,6 +202,14 @@ struct HighShelf : BiquadBase
               double cutoffFrequency,
               double gainDb,
               double shelfSlope);
+};
+	
+struct HighShelfOld : BiquadBase
+{
+  void setup (double sampleRate,
+			  double cutoffFrequency,
+			  double gainDb,
+			  double shelfSlope);
 };
 
 struct BandShelf : BiquadBase
@@ -312,6 +415,12 @@ struct HighShelf : TypeIII <RBJ::HighShelf>
 {
   static Kind getKind () { return kindHighShelf; }
   static const char* getName() { return "RBJ High Shelf"; }
+};
+	
+struct HighShelfOld : TypeIII <RBJ::HighShelfOld>
+{
+	static Kind getKind () { return kindHighShelf; }
+	static const char* getName() { return "RBJ High Shelf Old version"; }
 };
 
 struct BandShelf : TypeIV <RBJ::BandShelf>
