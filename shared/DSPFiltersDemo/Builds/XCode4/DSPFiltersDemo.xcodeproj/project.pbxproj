@@ -661,6 +661,8 @@
 			baseConfigurationReference = 2EF3B47E140F5095002CE947 /* SharedDebug.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = app;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Prefix.pch;
@@ -676,7 +678,7 @@
 					../../../DSPFilters/include,
 				);
 				PRODUCT_NAME = "DSP Filters";
-				SDKROOT = macosx10.6;
+				SDKROOT = macosx;
 			};
 			name = Debug;
 		};
@@ -685,6 +687,8 @@
 			baseConfigurationReference = 2EF3B482140F5095002CE947 /* SharedReleaseApp.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				EXECUTABLE_PREFIX = app;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = Prefix.pch;
@@ -699,7 +703,7 @@
 					../../../DSPFilters/include,
 				);
 				PRODUCT_NAME = "DSP Filters";
-				SDKROOT = macosx10.6;
+				SDKROOT = macosx;
 			};
 			name = Release;
 		};
@@ -707,7 +711,12 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2EF3B480140F5095002CE947 /* SharedMacOS.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				INFOPLIST_FILE = MacInfo.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx10.12;
 			};
 			name = Debug;
 		};
@@ -715,7 +724,12 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2EF3B480140F5095002CE947 /* SharedMacOS.xcconfig */;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
+				CLANG_CXX_LANGUAGE_STANDARD = "c++0x";
+				CLANG_CXX_LIBRARY = "libc++";
 				INFOPLIST_FILE = MacInfo.plist;
+				MACOSX_DEPLOYMENT_TARGET = 10.7;
+				SDKROOT = macosx10.12;
 			};
 			name = Release;
 		};

@@ -30,7 +30,7 @@
 //
 
 //BUILD_VARIANTS =
-GCC_VERSION = com.apple.compilers.llvmgcc42                     // Compiler for C/C++/Objective C
+GCC_VERSION = com.apple.compilers.llvm.clang.1_0                     // Compiler for C/C++/Objective C
 DEBUG_INFORMATION_FORMAT = dwarf                                // Debug Information Format
 //ENABLE_OPENMP_SUPPORT =
 //GENERATE_PROFILING_CODE =

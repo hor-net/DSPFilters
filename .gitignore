@@ -2,3 +2,5 @@ build
 .waf*
 .lock*
 .*.sw*
+shared/DSPFilters/Builds/XCode4/build-output/
+shared/DSPFilters/Builds/XCode4/build/
