@@ -71,6 +71,7 @@ int Filter::findParamId (int paramId)
   return index;
 }
 
+#if !defined(_WIN32)
 #include <execinfo.h> /* backtrace, backtrace_symbols_fd */
 #include <unistd.h> /* STDOUT_FILENO */
 
@@ -81,6 +82,7 @@ void print_stacktrace(void) {
     size = backtrace(array, MAX_SIZE);
     backtrace_symbols_fd(array, size, STDOUT_FILENO);
 }
+#endif
 
 void Filter::setParamById (int paramId, double nativeValue)
 {
